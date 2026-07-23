@@ -28,6 +28,9 @@ interface GooglePlacesReview {
   text?: {
     text?: string
   }
+  originalText?: {
+    text?: string
+  }
   relativePublishTimeDescription?: string
   publishTime?: string
 }
@@ -64,7 +67,7 @@ function normalize(raw: GooglePlacesResponse): NormalizedPayload {
   const reviews: NormalizedReview[] = (raw.reviews ?? []).map((r) => ({
     author_name: r.authorAttribution?.displayName ?? "Anonymous",
     rating: typeof r.rating === "number" ? r.rating : 0,
-    text: r.text?.text ?? "",
+    text: r.originalText?.text ?? r.text?.text ?? "",
     relative_time_description: r.relativePublishTimeDescription ?? "",
     time: r.publishTime ? new Date(r.publishTime).getTime() / 1000 : 0,
     profile_photo_url: r.authorAttribution?.photoUri ?? "",
@@ -123,8 +126,9 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   try {
-    const fieldMask = "rating,userRatingCount,reviews"
-    const googleUrl = `https://places.googleapis.com/v1/places/${placeId}`
+    const fieldMask =
+      "rating,userRatingCount,reviews.text,reviews.originalText,reviews.rating,reviews.authorAttribution,reviews.relativePublishTimeDescription,reviews.publishTime"
+    const googleUrl = `https://places.googleapis.com/v1/places/${placeId}?languageCode=nl`
 
     const googleResponse = await fetch(googleUrl, {
       method: "GET",
